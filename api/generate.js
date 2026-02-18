@@ -1,7 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+import OpenAI from 'openai';
 
 // Markdown cleanup function
 function cleanMarkdown(text) {
@@ -38,6 +35,13 @@ export default async function handler(req, res) {
         if (!problem || !problem.trim()) {
             return res.status(400).json({ error: 'Problem description is required' });
         }
+
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ error: 'OpenAI API key not configured. Please set OPENAI_API_KEY in your Vercel environment variables.' });
+        }
+
+        const openai = new OpenAI({ apiKey });
 
         // System prompt
         const SYSTEM_PROMPT = `You are an expert Business Analyst and Process Mapping specialist. Analyze the given business problem and provide a structured response with the following 8 sections. Use plain text without any markdown formatting (no **, *, #, or other markdown symbols).
@@ -78,11 +82,17 @@ Example: First Response Time - Under 2 hours - Average time from ticket creation
 
 Remember: Use plain text only, no markdown formatting.`;
 
-        // Generate content
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-        const result = await model.generateContent(`${SYSTEM_PROMPT}\n\nBusiness Problem:\n${problem}`);
-        const response = await result.response;
-        let text = response.text();
+        // Generate content using OpenAI
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            max_tokens: 2000,
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: `Business Problem:\n${problem}` }
+            ]
+        });
+
+        let text = completion.choices[0]?.message?.content || '';
 
         // Clean markdown
         text = cleanMarkdown(text);

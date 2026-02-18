@@ -1,5 +1,5 @@
 import express from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 
 const router = express.Router();
 
@@ -133,19 +133,23 @@ router.post('/generate', async (req, res) => {
             return res.status(400).json({ error: 'Problem description is required' });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
-            return res.status(500).json({ error: 'Gemini API key not configured' });
+            return res.status(500).json({ error: 'OpenAI API key not configured. Please check your OPENAI_API_KEY environment variable.' });
         }
 
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const openai = new OpenAI({ apiKey });
 
-        const prompt = `${SYSTEM_PROMPT}\n\nBUSINESS PROBLEM:\n${problem}`;
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            max_tokens: 2000,
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: `BUSINESS PROBLEM:\n${problem}` }
+            ]
+        });
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const rawText = response.text();
+        const rawText = completion.choices[0]?.message?.content || '';
 
         // Clean markdown from the entire response
         const cleanedText = cleanMarkdown(rawText);
