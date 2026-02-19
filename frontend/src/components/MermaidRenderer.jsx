@@ -33,6 +33,14 @@ export default function MermaidRenderer({ diagram, diagramType = 'flowchart' }) 
     const [selectedType, setSelectedType] = useState(diagramType);
 
     useEffect(() => {
+        const sanitizeDiagram = (raw) => {
+            return raw
+                .replace(/```mermaid\s*/gi, '')
+                .replace(/```\s*/g, '')
+                .replace(/^mermaid\s*\n/i, '')
+                .trim();
+        };
+
         const renderDiagram = async () => {
             if (!diagram || !mermaidRef.current) return;
 
@@ -41,7 +49,8 @@ export default function MermaidRenderer({ diagram, diagramType = 'flowchart' }) 
                 mermaidRef.current.innerHTML = '';
 
                 const id = `mermaid-${Date.now()}`;
-                const { svg } = await mermaid.render(id, diagram);
+                const cleanDiagram = sanitizeDiagram(diagram);
+                const { svg } = await mermaid.render(id, cleanDiagram);
                 mermaidRef.current.innerHTML = svg;
             } catch (err) {
                 console.error('Mermaid rendering error:', err);

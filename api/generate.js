@@ -121,7 +121,14 @@ Remember: Use plain text only, no markdown formatting.`;
                 case 2: sections.actors = content; break;
                 case 3: sections.asIsWorkflow = content; break;
                 case 4: sections.toBeWorkflow = content; break;
-                case 5: sections.mermaidDiagram = content; break;
+                case 5:
+                    // Strip code fences and stray "mermaid" keyword GPT sometimes adds
+                    sections.mermaidDiagram = content
+                        .replace(/```mermaid\s*/gi, '')
+                        .replace(/```\s*/g, '')
+                        .replace(/^mermaid\s*\n/i, '')
+                        .trim();
+                    break;
                 case 6: sections.bottlenecks = content; break;
                 case 7: sections.recommendations = content; break;
                 case 8: sections.kpis = content; break;
